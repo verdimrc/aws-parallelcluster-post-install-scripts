@@ -125,7 +125,7 @@ chmod 0644 /etc/enroot/enroot.conf
 ########
 #PYXIS
 ########
-git clone --depth 1 --branch v0.15.0 https://github.com/NVIDIA/pyxis.git /tmp/pyxis
+git clone --depth 1 --branch v0.18.0 https://github.com/NVIDIA/pyxis.git /tmp/pyxis
 cd /tmp/pyxis
 CPPFLAGS='-I /opt/slurm/include/' make
 CPPFLAGS='-I /opt/slurm/include/' make install
