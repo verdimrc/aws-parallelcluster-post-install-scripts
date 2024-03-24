@@ -33,9 +33,11 @@ done
 bash -x $BIN_DIR/initsmhp/fix-profile.sh
 bash -x $BIN_DIR/initsmhp/adjust-git.sh
 bash -x $BIN_DIR/initsmhp/fix-bash.sh /etc/skel/.bashrc
+cp $BIN_DIR/initsmhp/vimrc /etc/skel/.vimrc
 
 if [[ "${NODE_TYPE}" == "controller" ]]; then
     echo "[INFO] This is a Controller node."
     bash -x $BIN_DIR/initsmhp/fix-bash.sh ~ubuntu/.bashrc
+    cp $BIN_DIR/initsmhp/vimrc ~ubuntu/.vimrc && chown ubuntu:ubuntu ~ubuntu/.vimrc
     bash -x $BIN_DIR/initsmhp/howto-miniconda.sh
 fi
