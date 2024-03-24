@@ -8,6 +8,9 @@
 
 set -exuo pipefail
 
+# Don't let new lustre client module brings in new kernel.
+echo "lustre-client-modules-aws hold" | sudo dpkg --set-selections
+
 cd /opt
 git clone --single-branch -b main --depth 1 https://github.com/aws-samples/playground-persistent-cluster
 mkdir -p /var/log/initsmhp
