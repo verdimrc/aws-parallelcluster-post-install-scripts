@@ -116,7 +116,7 @@ fi
 ENROOT_CONFIG_RELEASE=verdimrc/aws-parallelcluster-post-install-scripts/experimental
 wget -O /tmp/enroot.template.conf https://raw.githubusercontent.com/${ENROOT_CONFIG_RELEASE}/pyxis/enroot.template.conf
 mkdir -p ${SHARED_DIR}/enroot
-chown ${NONROOT_USER} ${SHARED_DIR}/enroot
+chmod 1777 ${SHARED_DIR}/enroot
 ENROOT_CACHE_PATH=${SHARED_DIR}/enroot envsubst < /tmp/enroot.template.conf > /tmp/enroot.conf
 mv /tmp/enroot.conf /etc/enroot/enroot.conf
 chmod 0644 /etc/enroot/enroot.conf
@@ -134,7 +134,7 @@ echo -e 'include /opt/slurm/etc/plugstack.conf.d/*' | tee /opt/slurm/etc/plugsta
 ln -fs /usr/local/share/pyxis/pyxis.conf /opt/slurm/etc/plugstack.conf.d/pyxis.conf
 
 mkdir -p ${SHARED_DIR}/pyxis/
-chown ${NONROOT_USER} ${SHARED_DIR}/pyxis/
+chmod 1777 ${SHARED_DIR}/pyxis/
 sed -i '${s/$/ runtime_path=${SHARED_DIR}\/pyxis/}' /opt/slurm/etc/plugstack.conf.d/pyxis.conf
 SHARED_DIR=${SHARED_DIR} envsubst < /opt/slurm/etc/plugstack.conf.d/pyxis.conf > /opt/slurm/etc/plugstack.conf.d/pyxis.tmp.conf
 mv /opt/slurm/etc/plugstack.conf.d/pyxis.tmp.conf /opt/slurm/etc/plugstack.conf.d/pyxis.conf
