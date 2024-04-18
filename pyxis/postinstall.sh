@@ -15,7 +15,12 @@
 set -exo pipefail
 
 . /etc/parallelcluster/cfnconfig
+
+# HAHA: This is ugly.
 SHARED_DIR=${1:-/home/$cfn_cluster_user}
+shift
+PYXIS_RUNTIME_PATH=${1:-}
+
 
 echo "
 ###################################
@@ -86,7 +91,7 @@ elif [ "${OS}" == "Ubuntu" ]; then
 		    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
 		    tee /etc/apt/sources.list.d/nvidia-container-toolkit.list \
 	    	&& apt-get update -y \
-	    	&& apt-get install libnvidia-container-tools -y
+	    	&& apt-get install libnvidia-container-tools nvidia-container-runtime nvidia-docker2 -y
 	fi
 	apt-get install -y jq squashfs-tools parallel fuse-overlayfs pigz squashfuse zstd
 	if [[ $STABLE == 1 ]]; then
@@ -133,11 +138,28 @@ mkdir -p /opt/slurm/etc/plugstack.conf.d
 echo -e 'include /opt/slurm/etc/plugstack.conf.d/*' | tee /opt/slurm/etc/plugstack.conf
 ln -fs /usr/local/share/pyxis/pyxis.conf /opt/slurm/etc/plugstack.conf.d/pyxis.conf
 
-mkdir -p ${SHARED_DIR}/pyxis/
-chmod 1777 ${SHARED_DIR}/pyxis/
-sed -i '${s/$/ runtime_path=${SHARED_DIR}\/pyxis/}' /opt/slurm/etc/plugstack.conf.d/pyxis.conf
-SHARED_DIR=${SHARED_DIR} envsubst < /opt/slurm/etc/plugstack.conf.d/pyxis.conf > /opt/slurm/etc/plugstack.conf.d/pyxis.tmp.conf
-mv /opt/slurm/etc/plugstack.conf.d/pyxis.tmp.conf /opt/slurm/etc/plugstack.conf.d/pyxis.conf
+# Pyxis runtime path cannot be /fsx, otherwise error to run Docker image (directly) on multiple nodes.
+#
+#     $ srun -N2 --container-image=alpine grep PRETTY /etc/os-release
+#     ...
+#     slurmstepd: error: pyxis:     Can't find a SQUASHFS superblock on /fsx/pyxis/1000/385.0.squashfs
+#     slurmstepd: error: pyxis:     Wrong filesystem or filesystem is corrupted!
+#     slurmstepd: error: pyxis:     Failed to read existing filesystem - will not overwrite - ABORTING!
+#     slurmstepd: error: pyxis:     To force Mksquashfs to write to this block device or file use -noappend
+#     ...
+#     srun: error: p4de-st-p4de-1: task 0: Exited with exit code 1
+#     ...
+#     slurmstepd: error: pyxis:     [ERROR] No such file or directory: /fsx/pyxis/1000/385.0.squashfs
+#     ...
+#     srun: error: p4de-st-p4de-2: task 1: Exited with exit code 1
+if [[ $PYXIS_RUNTIME_PATH != "" ]]; then
+    sed -i "s/$/ runtime_path=${PYXIS_RUNTIME_PATH}/" /opt/slurm/etc/plugstack.conf.d/pyxis.conf
+    mkdir -p $PYXIS_RUNTIME_PATH
+    chmod 1777 $PYXIS_RUNTIME_PATH
+else
+    mkdir -p /run/pyxis/
+    chmod 1777 /run/pyxis/
+fi
 
 systemctl restart slurmd || systemctl restart slurmctld
 
