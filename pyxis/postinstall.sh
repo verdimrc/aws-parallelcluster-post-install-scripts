@@ -113,8 +113,8 @@ else
 	echo "Unsupported OS: ${OS}" && exit 1;
 fi
 
-ENROOT_CONFIG_RELEASE=pyxis # TODO automate
-wget -O /tmp/enroot.template.conf https://raw.githubusercontent.com/aws-samples/aws-parallelcluster-post-install-scripts/${ENROOT_CONFIG_RELEASE}/pyxis/enroot.template.conf
+ENROOT_CONFIG_RELEASE=verdimrc/aws-parallelcluster-post-install-scripts/experimental
+wget -O /tmp/enroot.template.conf https://raw.githubusercontent.com/${ENROOT_CONFIG_RELEASE}/pyxis/enroot.template.conf
 mkdir -p ${SHARED_DIR}/enroot
 chown ${NONROOT_USER} ${SHARED_DIR}/enroot
 ENROOT_CACHE_PATH=${SHARED_DIR}/enroot envsubst < /tmp/enroot.template.conf > /tmp/enroot.conf
@@ -125,7 +125,7 @@ chmod 0644 /etc/enroot/enroot.conf
 ########
 #PYXIS
 ########
-git clone --depth 1 --branch v0.18.0 https://github.com/NVIDIA/pyxis.git /tmp/pyxis
+git clone --depth 1 --branch v0.19.0 https://github.com/NVIDIA/pyxis.git /tmp/pyxis
 cd /tmp/pyxis
 CPPFLAGS='-I /opt/slurm/include/' make
 CPPFLAGS='-I /opt/slurm/include/' make install
