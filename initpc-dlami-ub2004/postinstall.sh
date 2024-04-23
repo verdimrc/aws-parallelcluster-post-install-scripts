@@ -16,8 +16,8 @@ mkdir -p /var/log/initsmhp
 BIN_DIR=/opt/playground-persistent-cluster/src/LifecycleScripts/base-config
 chmod ugo+x $BIN_DIR/initsmhp/*.sh $BIN_DIR/hotfix/*.sh $BIN_DIR/apply_hotfix.sh
 
-bash -x $BIN_DIR/apply_hotfix.sh 2>&1 | tee /var/log/initsmhp/apply-hotfix.txt
 apt -o DPkg::Lock::Timeout=120 update
+bash -x $BIN_DIR/apply_hotfix.sh 2>&1 | tee /var/log/initsmhp/apply-hotfix.txt
 apt -o DPkg::Lock::Timeout=120 -y upgrade -V
 
 declare -a PKGS_SCRIPTS=(
