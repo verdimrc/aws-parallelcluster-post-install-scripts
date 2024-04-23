@@ -16,7 +16,7 @@ mkdir -p /var/log/initsmhp
 BIN_DIR=/opt/playground-persistent-cluster/src/LifecycleScripts/base-config
 chmod ugo+x $BIN_DIR/initsmhp/*.sh $BIN_DIR/hotfix/*.sh $BIN_DIR/apply_hotfix.sh
 
-bash -x $BIN_DIR/apply_hotfix.sh &> /var/log/initsmhp/apply-hotfix.txt
+bash -x $BIN_DIR/apply_hotfix.sh 2>&1 | tee /var/log/initsmhp/apply-hotfix.txt
 apt -o DPkg::Lock::Timeout=120 update
 apt -o DPkg::Lock::Timeout=120 -y upgrade -V
 
@@ -32,8 +32,8 @@ declare -a PKGS_SCRIPTS=(
 
 for i in "${PKGS_SCRIPTS[@]}"; do
     bash -x $BIN_DIR/initsmhp/$i &> /var/log/initsmhp/$i.txt \
-        && echo "SUCCESS: $i" >> /var/log/initsmhp/initsmhp.txt \
-        || echo "FAIL: $i" >> /var/log/initsmhp/initsmhp.txt
+        && echo "SUCCESS: $i" | tee -a /var/log/initsmhp/initsmhp.txt \
+        || echo "FAIL: $i" | tee -a /var/log/initsmhp/initsmhp.txt
 done
 
 bash -x $BIN_DIR/initsmhp/fix-profile.sh
