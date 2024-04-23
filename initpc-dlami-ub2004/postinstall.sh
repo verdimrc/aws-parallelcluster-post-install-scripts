@@ -8,16 +8,18 @@
 
 set -exuo pipefail
 
-# Don't let new lustre client module brings in new kernel.
-echo "lustre-client-modules-aws hold" | sudo dpkg --set-selections
-
 cd /opt
 git clone --single-branch -b main --depth 1 https://github.com/aws-samples/playground-persistent-cluster
 mkdir -p /var/log/initsmhp
 ( cd playground-persistent-cluster && echo playground-persistent-cluster $(git rev-parse --short HEAD) )
 
 BIN_DIR=/opt/playground-persistent-cluster/src/LifecycleScripts/base-config
-chmod ugo+x $BIN_DIR/initsmhp/*.sh
+chmod ugo+x $BIN_DIR/initsmhp/*.sh $BIN_DIR/hotfix/*.sh $BIN_DIR/apply_hotfix.sh
+
+bash -x $BIN_DIR/apply_hotfix.sh &> /var/log/initsmhp/apply-hotfix.txt
+apt -o DPkg::Lock::Timeout=120 update
+apt -o DPkg::Lock::Timeout=120 -y upgrade -V
+
 declare -a PKGS_SCRIPTS=(
     install-pkgs.sh
     install-delta.sh
@@ -25,6 +27,7 @@ declare -a PKGS_SCRIPTS=(
     install-s5cmd.sh
     install-tmux.sh
     install-mount-s3.sh
+    install-git-remote-codecommit.sh
 )
 
 for i in "${PKGS_SCRIPTS[@]}"; do
