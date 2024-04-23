@@ -160,7 +160,7 @@ ln -fs /usr/local/share/pyxis/pyxis.conf /opt/slurm/etc/plugstack.conf.d/pyxis.c
 #     ...
 #     srun: error: p4de-st-p4de-2: task 1: Exited with exit code 1
 if [[ $PYXIS_RUNTIME_PATH != "" ]]; then
-    sed -i "s/$/ runtime_path=${PYXIS_RUNTIME_PATH}/" /opt/slurm/etc/plugstack.conf.d/pyxis.conf
+    sed -i "s|$| runtime_path=${PYXIS_RUNTIME_PATH}|" /opt/slurm/etc/plugstack.conf.d/pyxis.conf
     mkdir -p $PYXIS_RUNTIME_PATH
     chmod 1777 $PYXIS_RUNTIME_PATH
 else
