@@ -1,0 +1,33 @@
+# Courtesy of Enrico Usai:
+#
+# For 3.7 [dcv setup action is skipped][1] only if dcv is already installed.
+# The [check to see if dcv is installed][2] is done with:
+#
+# def dcv_installed?
+#   ::File.exist?("/etc/dcv/dcv.conf")
+# end
+#
+# [1]: https://github.com/aws/aws-parallelcluster-cookbook/blob/release-3.7/cookbooks/aws-parallelcluster-platform/resources/dcv/partial/_dcv_common.rb#L103
+# [2]: https://github.com/aws/aws-parallelcluster-cookbook/blob/develop/cookbooks/aws-parallelcluster-shared/libraries/environment.rb#L70
+
+name: Fake DCV install
+description: Make pcluster cookbook believes that DCV is already installed.
+schemaVersion: 1.0
+
+phases:
+  - name: build
+    steps:
+      - name: fakeDcvInstallation
+        action: ExecuteBash
+        inputs:
+          commands:
+            - |
+              set -exuo pipefail
+
+              # Add marker that this component has run
+              echo BEGIN > /etc/haha.txt
+
+              mkdir -p /etc/dcv/
+              echo "# Expect only this line presented in /etc/dcv/dcv.conf" >> /etc/dcv/dcv.conf
+
+              echo END >> /etc/haha.txt

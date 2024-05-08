@@ -1,0 +1,141 @@
+Region: us-west-2
+Image:
+  CustomAmi: ami-xxxx
+  Os: ubuntu2004
+HeadNode:
+  InstanceType: m6i.4xlarge
+  LocalStorage:
+    RootVolume:
+      VolumeType: gp3
+      Encrypted: true  # Default: true
+      Size: 350
+      Throughput: 350
+      Iops: 3000
+  Networking:
+    SubnetId: subnet-xxxx    # Public subnet on vpc-xxx
+    AdditionalSecurityGroups:
+      - sg-xxxx
+  Ssh:
+    KeyName: xxxx
+    AllowedIps: 127.0.0.1/32
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AdministratorAccess
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Sequence:
+        - Script: https://raw.githubusercontent.com/verdimrc/aws-parallelcluster-post-install-scripts/experimental/active-directory/postinstall.sh
+          Args:
+            - arn:aws:secretsmanager:us-west-2:111122223333:secret:DomainCertificateSecret-ad-xxx
+            - /opt/parallelcluster/shared/directory_service/domain-certificate.crt
+        - Script: https://raw.githubusercontent.com/verdimrc/aws-parallelcluster-post-install-scripts/experimental/sshd/postinstall.sh
+        - Script: https://raw.githubusercontent.com/verdimrc/aws-parallelcluster-post-install-scripts/experimental/initpc-dlami-ub2004/postinstall.sh
+          Args:
+            - controller
+        #- Script: https://raw.githubusercontent.com/verdimrc/aws-parallelcluster-post-install-scripts/knot/knot/postinstall.sh
+        - Script: https://raw.githubusercontent.com/verdimrc/aws-parallelcluster-post-install-scripts/experimental/pyxis/postinstall.sh
+          Args:
+            - /fsx
+            - /opt/dlami/nvme
+    OnNodeUpdated:
+      Sequence:
+        - Script: https://raw.githubusercontent.com/verdimrc/aws-parallelcluster-post-install-scripts/experimental/sshd/postinstall.sh
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 60
+    QueueUpdateStrategy: TERMINATE
+    CustomSlurmSettings:
+      # Simple accounting to text file /home/slurm/slurm-job-completions.txt.
+      #
+      # Must be disabled should you prefer to setup Slurm accounting to database
+      # (https://docs.aws.amazon.com/parallelcluster/latest/ug/slurm-accounting-v3.html).
+      #
+      # NOTE: JobCompType entry will be duplicated, hence will cause a harmless
+      # warning message in `systemctl status --no-pager slurmctld`.
+      - JobCompType: jobcomp/filetxt
+      - JobCompLoc: /home/slurm/slurm-job-completions.txt
+      - JobAcctGatherType: jobacct_gather/linux
+  SlurmQueues:
+    - Name: p4de
+      CapacityReservationTarget:
+        CapacityReservationId: cr-xxxx
+      JobExclusiveAllocation: true    # GenAI training likes to gobble all GPUs in an instance
+      ## Ensure to put an AMI newer than the EXISTING head node, and the AMI must be created
+      ## with the same pcluster version to the cluster.
+      # Image:
+      #   CustomAmi: ami-yyyy
+      ComputeResources:
+        - Name: p4de
+          InstanceType: p4de.24xlarge
+          MinCount: 0
+          MaxCount: 2
+          Efa:
+            Enabled: true
+          DisableSimultaneousMultithreading: true
+          CustomSlurmSettings:
+            Sockets: 2
+            CoresPerSocket: 24   # p4=24, p5=48
+      ComputeSettings:
+        LocalStorage:
+          RootVolume:
+            VolumeType: gp3
+            Size: 350
+            Throughput: 350
+            Iops: 3000
+      Networking:
+        SubnetIds:
+          - subnet-yyyy  # Private subnet on vpc-xxxx
+        AdditionalSecurityGroups:
+          - sg-xxxx
+        PlacementGroup:
+          Enabled: false    # False for assisted CR
+      HealthChecks:
+        Gpu:
+          Enabled: false
+      CustomActions:
+        OnNodeConfigured:
+          Sequence:
+            - Script: https://raw.githubusercontent.com/verdimrc/aws-parallelcluster-post-install-scripts/experimental/active-directory/postinstall.sh
+              Args:
+                - arn:aws:secretsmanager:us-west-2:159553542841:secret:DomainCertificateSecret-ad-vpc-xxxx
+                - /opt/parallelcluster/shared/directory_service/domain-certificate.crt
+            - Script: https://raw.githubusercontent.com/verdimrc/aws-parallelcluster-post-install-scripts/experimental/sshd/postinstall.sh
+            - Script: https://raw.githubusercontent.com/verdimrc/aws-parallelcluster-post-install-scripts/experimental/initpc-dlami-ub2004/postinstall.sh
+            #- Script: https://raw.githubusercontent.com/verdimrc/aws-parallelcluster-post-install-scripts/knot/knot/postinstall.sh
+            - Script: https://raw.githubusercontent.com/verdimrc/aws-parallelcluster-post-install-scripts/experimental/pyxis/postinstall.sh
+              Args:
+                - /fsx
+                - /opt/dlami/nvme
+      Iam:
+        AdditionalIamPolicies:
+          - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+          - Policy: arn:aws:iam::aws:policy/AdministratorAccess
+SharedStorage:
+  - MountDir: /fsx
+    Name: fsx
+    StorageType: FsxLustre
+    FsxLustreSettings:
+      FileSystemId: fs-xxxx
+  - MountDir: /home
+    Name: home
+    StorageType: FsxOpenZfs
+    FsxOpenZfsSettings:
+      VolumeId: fsvol-xxxx
+  #- MountDir: /efs
+  #  Name: efs
+  #  StorageType: Efs
+  #  EfsSettings:
+  #    EncryptionInTransit: true
+Monitoring:
+  Logs:
+    CloudWatch:
+      RetentionInDays: 60
+DirectoryService:
+  DomainName: corp.example.com
+  DomainAddr: ldaps://corp.example.com
+  PasswordSecretArn: arn:aws:secretsmanager:us-west-2:111122223333:secret:PasswordSecret-ad-vpc-xxxx
+  DomainReadOnlyUser: cn=ReadOnlyUser,ou=Users,ou=CORP,dc=corp,dc=example,dc=com
+  LdapTlsCaCert: /opt/parallelcluster/shared/directory_service/domain-certificate.crt
+  LdapTlsReqCert: hard

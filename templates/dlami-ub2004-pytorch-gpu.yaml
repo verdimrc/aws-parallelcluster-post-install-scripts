@@ -1,0 +1,57 @@
+Build:
+  InstanceType: g4dn.4xlarge
+  # Deep Learning OSS Nvidia Driver AMI GPU PyTorch 2.1.0 (Ubuntu 20.04) 20240312 / us-west-2 / 45 GB
+  #
+  # See also: https://docs.aws.amazon.com/dlami/latest/devguide/appendix-ami-release-notes.html
+  #
+  # Cfn start: 14:53:07 UTC+0800
+  # AMI avail: 15:39:18 UTC+0800
+  # Total    : ~47m
+  ParentImage: ami-0d9a8db0988969219
+
+  ## Not recommended for DLAMI. If enabled, see [README.md => 3. Customize DLAMI](README.md#3-customize-dlami)
+  #UpdateOsPackages:
+  #  Enabled: true
+
+  # If below enabled, build time becomes faster.
+  # Cfn start: 19:13:26
+  # Cfn del  : 19:54:26
+  # Total    : ~41m
+  Components:
+    - Type: arn
+      Value: arn:aws:imagebuilder:us-west-2:159553542841:component/marcverdpclusternodcvcomponent/1.0.0/1
+
+Image:
+  RootVolume:
+    Encrypted: false
+
+    # https://docs.aws.amazon.com/parallelcluster/latest/ug/build-Image-v3.html#yaml-build-image-Image-RootVolume-Size
+    # Size (Optional, Integer)
+    #   Specifies the size of the root volume for the image, in GiB. The default
+    #   size is the size of the ParentImage plus 27 GiB.
+    Size: 45
+
+  Tags:
+    - Key: Name
+      Value: pc-dlami-ub2004-pytorch-gpu
+
+    # The build region can be inferred from tag parallelcluster:build_log which contains the ARN
+    # of the CloudWatch log group (and the ARN include the build region).
+    - Key: base_ami_id
+      Value: ami-0d9a8db0988969219
+    - Key: base_ami_name
+      Value: "Deep Learning OSS Nvidia Driver AMI GPU PyTorch 2.1.0 (Ubuntu 20.04) 20240312 / us-west-2"
+
+# Disclaimer: DevSettings is undocumented and subject to change.
+DevSettings:
+  ## DO NOT enable below. It's left here for FYI only. This actually apt-get install an lts kernel
+  ## and symlink vmlinuz.old to the lts kernel.
+  ##
+  ## See:
+  ## - disable-update-kernel.log
+  ## - aws-parallelcluster/cli/src/pcluster/resources/imagebuilder/update_and_reboot.yaml
+  #DisableKernelUpdate: True
+
+  DistributionConfiguration:
+    Regions: us-east-1,us-west-2
+
